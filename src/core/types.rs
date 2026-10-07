@@ -34,7 +34,7 @@ pub enum TokenType {
     Unknown,
     /// Virtual: expected end of input (no more tokens).
     Eof,
-    /// A `*` is used to indicate a checksum or CRC.
+    /// An `*` is used to indicate a checksum or CRC.
     Asterisk,
 }
 
