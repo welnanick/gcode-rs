@@ -34,6 +34,8 @@ pub enum TokenType {
     Unknown,
     /// Virtual: expected end of input (no more tokens).
     Eof,
+    /// A `*` is used to indicate a checksum or CRC.
+    Asterisk,
 }
 
 impl TokenType {
@@ -53,6 +55,7 @@ impl TokenType {
             TokenType::Newline => "newline",
             TokenType::Unknown => "unknown",
             TokenType::Eof => "eof",
+            TokenType::Asterisk => "*",
         }
     }
 }
@@ -324,6 +327,9 @@ pub trait BlockVisitor: HasDiagnostics + Sized {
     fn program_delimiter(&mut self, _span: Span) {}
     /// Modal bare word address (e.g. `X5.0`, `S12000` at block level without a G/M/T prefix).
     fn word_address(&mut self, _letter: char, _value: Value<'_>, _span: Span) {}
+
+    /// Checksum value (e.g *71). Called at most once per block.
+    fn checksum(&mut self, checksum: u32, span: Span) {}
 
     /// Start of a G (general) command. Return a [`CommandVisitor`] to handle
     /// this command, or use the default to ignore it.

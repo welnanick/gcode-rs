@@ -406,6 +406,31 @@ fn parse_program_number<B: BlockVisitor>(
     }
 }
 
+/// Checksum number: * number. Caller has already consumed the *; we only consume the number.
+fn parse_checksum_number<B: BlockVisitor>(
+    tokens: &mut Tokens<'_>,
+    block: &mut B,
+    asterisk_tok: Token<'_>,
+) {
+    match tokens.next_token() {
+        Some(Token {
+            kind: TokenType::Number,
+            value,
+            span,
+        }) => match parse_block_integer(value) {
+            Ok(n) => block.checksum(n, span_from_to(asterisk_tok.span, span)),
+            Err(e) => block.diagnostics().emit_parse_int_error(value, e, span),
+        },
+        _ => {
+            block.diagnostics().emit_unexpected(
+                "*",
+                &[TokenType::Number],
+                asterisk_tok.span,
+            );
+        },
+    }
+}
+
 /// Block-level word address: letter already in hand, consume optional sign + number from tokens.
 /// Returns true if number was present and word_address was called; false if no number (diagnostic emitted).
 fn try_parse_block_word_address<B: BlockVisitor>(
@@ -596,6 +621,16 @@ fn parse_block_body<'src, B: BlockVisitor>(
                     current.span,
                 );
             },
+            TokenType::Asterisk => {
+                parse_checksum_number(tokens, block, current);
+                current = match tokens.next_token() {
+                    Some(t) => t,
+                    None => {
+                        return (ControlFlow::Continue(()), line_span);
+                    },
+                };
+                continue;
+            },
             TokenType::Newline | TokenType::Eof => {},
         }
 
@@ -711,6 +746,7 @@ mod tests {
         Argument(char, EventValue, Span),
         UnknownContentError(String, Span),
         Unexpected(String, String, Span),
+        ChecksumNumber(u32, Span),
     }
 
     struct Recorder<'a>(&'a mut Vec<Event>);
@@ -760,6 +796,9 @@ mod tests {
         }
         fn word_address(&mut self, letter: char, value: Value<'_>, span: Span) {
             self.0.push(Event::WordAddress(letter, value.into(), span));
+        }
+        fn checksum(&mut self, checksum: u32, span: Span) {
+            self.0.push(Event::ChecksumNumber(checksum, span))
         }
         fn start_general_code(
             &mut self,
@@ -952,6 +991,19 @@ mod tests {
                 Event::LineStarted,
                 Event::LineNumber(42, sp(0, 3, 0)),
                 Event::GeneralCode(Number::new(90)),
+            ]
+        );
+    }
+    #[test]
+    fn line_number_then_g_code_then_checksum() {
+        let events = parse_and_record("N1 M115*39");
+        assert_eq!(
+            events,
+            vec![
+                Event::LineStarted,
+                Event::LineNumber(1, sp(0, 2, 0)),
+                Event::MiscCode(Number::new(115)),
+                Event::ChecksumNumber(39, sp(7, 3, 0))
             ]
         );
     }
