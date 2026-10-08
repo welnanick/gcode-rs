@@ -1,6 +1,6 @@
 ---
 source: tests/parse_fixtures.rs
-assertion_line: 81
+assertion_line: 96
 expression: program
 ---
 Program {
@@ -29,6 +29,46 @@ Program {
         },
         Block {
             line_number: Some(
+                0,
+            ),
+            comments: [],
+            codes: [
+                Miscellaneous(
+                    MiscellaneousCode {
+                        number: 110,
+                        span: Span {
+                            start: 56,
+                            length: 7,
+                            line: 1,
+                        },
+                        args: [
+                            Argument {
+                                letter: 'N',
+                                value: Literal(
+                                    0.0,
+                                ),
+                                span: Span {
+                                    start: 61,
+                                    length: 2,
+                                    line: 1,
+                                },
+                            },
+                        ],
+                    },
+                ),
+            ],
+            word_addresses: [],
+            checksum: Some(
+                125,
+            ),
+            span: Span {
+                start: 53,
+                length: 16,
+                line: 1,
+            },
+        },
+        Block {
+            line_number: Some(
                 1,
             ),
             comments: [],
@@ -37,9 +77,9 @@ Program {
                     MiscellaneousCode {
                         number: 115,
                         span: Span {
-                            start: 56,
+                            start: 72,
                             length: 4,
-                            line: 1,
+                            line: 2,
                         },
                         args: [],
                     },
@@ -50,9 +90,9 @@ Program {
                 39,
             ),
             span: Span {
-                start: 53,
+                start: 69,
                 length: 12,
-                line: 1,
+                line: 2,
             },
         },
         Block {
@@ -65,9 +105,9 @@ Program {
                     MiscellaneousCode {
                         number: 21,
                         span: Span {
-                            start: 68,
+                            start: 84,
                             length: 3,
-                            line: 2,
+                            line: 3,
                         },
                         args: [],
                     },
@@ -78,9 +118,9 @@ Program {
                 18,
             ),
             span: Span {
-                start: 65,
+                start: 81,
                 length: 11,
-                line: 2,
+                line: 3,
             },
         },
         Block {
@@ -93,9 +133,9 @@ Program {
                     MiscellaneousCode {
                         number: 105,
                         span: Span {
-                            start: 79,
+                            start: 95,
                             length: 4,
-                            line: 3,
+                            line: 4,
                         },
                         args: [],
                     },
@@ -106,9 +146,9 @@ Program {
                 36,
             ),
             span: Span {
-                start: 76,
+                start: 92,
                 length: 8,
-                line: 3,
+                line: 4,
             },
         },
     ],
