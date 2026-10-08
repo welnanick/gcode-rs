@@ -406,6 +406,7 @@ fn parse_program_number<B: BlockVisitor>(
     }
 }
 
+#[cfg(feature = "rep-rap-gcode")]
 /// Checksum number: * number. Caller has already consumed the *; we only consume the number.
 fn parse_checksum_number<B: BlockVisitor>(
     tokens: &mut Tokens<'_>,
@@ -621,6 +622,7 @@ fn parse_block_body<'src, B: BlockVisitor>(
                     current.span,
                 );
             },
+            #[cfg(feature = "rep-rap-gcode")]
             TokenType::Asterisk => {
                 parse_checksum_number(tokens, block, current);
                 current = match tokens.next_token() {
@@ -746,6 +748,7 @@ mod tests {
         Argument(char, EventValue, Span),
         UnknownContentError(String, Span),
         Unexpected(String, String, Span),
+        #[cfg(feature = "rep-rap-gcode")]
         ChecksumNumber(u32, Span),
     }
 
@@ -797,6 +800,7 @@ mod tests {
         fn word_address(&mut self, letter: char, value: Value<'_>, span: Span) {
             self.0.push(Event::WordAddress(letter, value.into(), span));
         }
+        #[cfg(feature = "rep-rap-gcode")]
         fn checksum(&mut self, checksum: u32, span: Span) {
             self.0.push(Event::ChecksumNumber(checksum, span))
         }
@@ -994,6 +998,8 @@ mod tests {
             ]
         );
     }
+
+    #[cfg(feature = "rep-rap-gcode")]
     #[test]
     fn line_number_then_g_code_then_checksum() {
         let events = parse_and_record("N1 M115*39");

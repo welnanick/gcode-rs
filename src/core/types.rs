@@ -34,6 +34,7 @@ pub enum TokenType {
     Unknown,
     /// Virtual: expected end of input (no more tokens).
     Eof,
+    #[cfg(feature = "rep-rap-gcode")]
     /// An `*` is used to indicate a checksum or CRC.
     Asterisk,
 }
@@ -55,6 +56,7 @@ impl TokenType {
             TokenType::Newline => "newline",
             TokenType::Unknown => "unknown",
             TokenType::Eof => "eof",
+            #[cfg(feature = "rep-rap-gcode")]
             TokenType::Asterisk => "*",
         }
     }
@@ -328,6 +330,7 @@ pub trait BlockVisitor: HasDiagnostics + Sized {
     /// Modal bare word address (e.g. `X5.0`, `S12000` at block level without a G/M/T prefix).
     fn word_address(&mut self, _letter: char, _value: Value<'_>, _span: Span) {}
 
+    #[cfg(feature = "rep-rap-gcode")]
     /// Checksum value (e.g *71). Called at most once per block.
     fn checksum(&mut self, checksum: u32, span: Span) {}
 

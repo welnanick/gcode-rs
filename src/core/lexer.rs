@@ -65,6 +65,7 @@ impl<'src> Tokens<'src> {
             '-' => self.scan_single_char(TokenType::MinusSign),
             '+' => self.scan_single_char(TokenType::PlusSign),
             '/' => self.scan_single_char(TokenType::Slash),
+            #[cfg(feature = "rep-rap-gcode")]
             '*' => self.scan_single_char(TokenType::Asterisk),
             ';' => self.scan_semicolon_comment(),
             '(' => self.scan_paren_comment(),
@@ -384,7 +385,8 @@ mod tests {
             ]
         );
     }
-
+    
+    #[cfg(feature = "rep-rap-gcode")]
     #[test]
     fn asterisk_then_number_span_correctly() {
         let src = "*71";
@@ -406,6 +408,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "rep-rap-gcode")]
     #[test]
     fn number_then_asterisk_span_correctly() {
         let src = "71*";
@@ -690,6 +693,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "rep-rap-gcode")]
     #[test]
     fn mixed_n1_m115_asterisk_39() {
         let src = "N1 M115*39";
