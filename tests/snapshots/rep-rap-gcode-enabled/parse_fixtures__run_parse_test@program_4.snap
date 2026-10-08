@@ -1,0 +1,115 @@
+---
+source: tests/parse_fixtures.rs
+assertion_line: 81
+expression: program
+---
+Program {
+    blocks: [
+        Block {
+            line_number: None,
+            comments: [
+                Comment {
+                    value: " A short gcode program with RepRap style checksums\r",
+                    kind: Semicolon,
+                    span: Span {
+                        start: 0,
+                        length: 52,
+                        line: 0,
+                    },
+                },
+            ],
+            codes: [],
+            word_addresses: [],
+            checksum: None,
+            span: Span {
+                start: 0,
+                length: 53,
+                line: 0,
+            },
+        },
+        Block {
+            line_number: Some(
+                1,
+            ),
+            comments: [],
+            codes: [
+                Miscellaneous(
+                    MiscellaneousCode {
+                        number: 115,
+                        span: Span {
+                            start: 56,
+                            length: 4,
+                            line: 1,
+                        },
+                        args: [],
+                    },
+                ),
+            ],
+            word_addresses: [],
+            checksum: Some(
+                39,
+            ),
+            span: Span {
+                start: 53,
+                length: 12,
+                line: 1,
+            },
+        },
+        Block {
+            line_number: Some(
+                2,
+            ),
+            comments: [],
+            codes: [
+                Miscellaneous(
+                    MiscellaneousCode {
+                        number: 21,
+                        span: Span {
+                            start: 68,
+                            length: 3,
+                            line: 2,
+                        },
+                        args: [],
+                    },
+                ),
+            ],
+            word_addresses: [],
+            checksum: Some(
+                18,
+            ),
+            span: Span {
+                start: 65,
+                length: 11,
+                line: 2,
+            },
+        },
+        Block {
+            line_number: Some(
+                3,
+            ),
+            comments: [],
+            codes: [
+                Miscellaneous(
+                    MiscellaneousCode {
+                        number: 105,
+                        span: Span {
+                            start: 79,
+                            length: 4,
+                            line: 3,
+                        },
+                        args: [],
+                    },
+                ),
+            ],
+            word_addresses: [],
+            checksum: Some(
+                36,
+            ),
+            span: Span {
+                start: 76,
+                length: 8,
+                line: 3,
+            },
+        },
+    ],
+}
