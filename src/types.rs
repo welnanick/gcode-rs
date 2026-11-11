@@ -349,6 +349,8 @@ impl defmt::Format for Argument {
 pub enum Value {
     Literal(f32),
     Variable(String),
+    #[cfg(feature = "rep-rap-gcode")]
+    Empty,
 }
 
 impl From<crate::core::Value<'_>> for Value {
@@ -356,6 +358,8 @@ impl From<crate::core::Value<'_>> for Value {
         match value {
             crate::core::Value::Literal(l) => Self::Literal(l),
             crate::core::Value::Variable(v) => Self::Variable(v.into()),
+            #[cfg(feature = "rep-rap-gcode")]
+            crate::core::Value::Empty => Self::Empty,
         }
     }
 }
@@ -365,6 +369,8 @@ impl fmt::Display for Value {
         match self {
             Value::Literal(n) => write!(f, "{}", n),
             Value::Variable(s) => write!(f, "#{}", s),
+            #[cfg(feature = "rep-rap-gcode")]
+            Value::Empty => Ok(()),
         }
     }
 }
@@ -375,6 +381,8 @@ impl defmt::Format for Value {
         match self {
             Value::Literal(n) => defmt::write!(fmt, "{}", n),
             Value::Variable(s) => defmt::write!(fmt, "#{}", s),
+            #[cfg(feature = "rep-rap-gcode")]
+            Value::Empty => {},
         }
     }
 }
@@ -564,6 +572,8 @@ mod tests {
                 );
             },
             (Value::Variable(va), Value::Variable(vb)) => assert_eq!(va, vb),
+            #[cfg(feature = "rep-rap-gcode")]
+            (Value::Empty, Value::Empty) => {},
             _ => panic!("value variant mismatch: {:?} vs {:?}", a, b),
         }
     }
@@ -605,6 +615,8 @@ mod tests {
         roundtrip_variable => "G0 X#1\n",
         #[cfg(feature = "rep-rap-gcode")]
         roundtrip_line_number_g_code_checksum => "N1 M115*39\n",
+        #[cfg(feature = "rep-rap-gcode")]
+        roundtrip_m20_t => "M20 T\n",
     }
 
     /// Parser does not yet support # variable syntax, so roundtrip cannot be tested.

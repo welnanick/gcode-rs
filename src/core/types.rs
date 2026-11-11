@@ -386,12 +386,22 @@ pub trait CommandVisitor: HasDiagnostics + Sized {
 /// before the parse ends or copy the value if you need it later.
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rep-rap-gcode",
+    expect(
+        variant_size_differences,
+        reason = "Empty is zero-sized alongside &str"
+    )
+)]
 pub enum Value<'src> {
     /// A literal number (e.g. `10`, `-2.5`, `0.1e-2`).
     Literal(f32),
     /// A variable reference (e.g. `#1`, `#<expr>`); the string is the raw text
     /// after the `#`, not evaluated.
     Variable(&'src str),
+    /// Flag argument with no value (e.g. `T` in RepRap `M20 T`).
+    #[cfg(feature = "rep-rap-gcode")]
+    Empty,
 }
 
 impl Display for Value<'_> {
@@ -399,6 +409,8 @@ impl Display for Value<'_> {
         match self {
             Value::Literal(n) => write!(f, "{}", n),
             Value::Variable(s) => write!(f, "#{}", s),
+            #[cfg(feature = "rep-rap-gcode")]
+            Value::Empty => Ok(()),
         }
     }
 }
@@ -409,6 +421,8 @@ impl defmt::Format for Value<'_> {
         match self {
             Value::Literal(n) => defmt::write!(fmt, "{}", n),
             Value::Variable(s) => defmt::write!(fmt, "#{}", s),
+            #[cfg(feature = "rep-rap-gcode")]
+            Value::Empty => {},
         }
     }
 }

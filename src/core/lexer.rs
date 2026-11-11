@@ -12,8 +12,9 @@ pub(crate) struct Tokens<'src> {
     src: &'src str,
     current_index: usize,
     current_line: usize,
-    /// One-token lookahead for parser peek / resume state.
-    peeked: Option<Token<'src>>,
+    /// Up to two tokens of lookahead (`peeked[0]` is next, `peeked[1]` is after next).
+    /// Invariant: if `peeked[0]` is `None`, `peeked[1]` is also `None`.
+    peeked: [Option<Token<'src>>; 2],
 }
 
 impl<'src> Tokens<'src> {
@@ -26,13 +27,13 @@ impl<'src> Tokens<'src> {
             src,
             current_index,
             current_line,
-            peeked: None,
+            peeked: [None, None],
         }
     }
 
     /// Parse position for resume: start of the next token if we have one, else end of input.
     pub(crate) fn state(&self) -> ParserState {
-        match &self.peeked {
+        match &self.peeked[0] {
             Some(t) => ParserState::new(t.span.start, t.span.line),
             None => ParserState::new(self.current_index, self.current_line),
         }
@@ -40,15 +41,27 @@ impl<'src> Tokens<'src> {
 
     /// Parser-facing peek: next token without consuming. Fills lookahead if needed.
     pub(crate) fn peek_token(&mut self) -> Option<&Token<'src>> {
-        if self.peeked.is_none() {
-            self.peeked = self.read_next_token();
+        if self.peeked[0].is_none() {
+            self.peeked[0] = self.read_next_token();
         }
-        self.peeked.as_ref()
+        self.peeked[0].as_ref()
+    }
+
+    #[cfg(feature = "rep-rap-gcode")]
+    /// Parser-facing peek: second token (after next) without consuming. Fills lookahead if needed.
+    pub(crate) fn peek_second_token(&mut self) -> Option<&Token<'src>> {
+        let _ = self.peek_token()?;
+        if self.peeked[1].is_none() {
+            self.peeked[1] = self.read_next_token();
+        }
+        self.peeked[1].as_ref()
     }
 
     /// Parser-facing advance: consume and return the next token.
     pub(crate) fn next_token(&mut self) -> Option<Token<'src>> {
-        self.peeked.take().or_else(|| self.read_next_token())
+        let next = self.peeked[0].take();
+        self.peeked[0] = self.peeked[1].take();
+        next.or_else(|| self.read_next_token())
     }
 
     /// Advance lexer by one token; used by peek_token/next_token and Iterator.
@@ -811,5 +824,18 @@ mod tests {
                 }
             ],
         );
+    }
+
+    #[cfg(feature = "rep-rap-gcode")]
+    #[test]
+    fn peek_second_token_preserves_order_and_state() {
+        let mut tokens = Tokens::from_start("M20 T\nG0");
+        assert_eq!(tokens.peek_token().unwrap().kind, TokenType::M);
+        assert_eq!(tokens.peek_second_token().unwrap().kind, TokenType::Number);
+        assert_eq!(tokens.state(), ParserState::new(0, 0));
+
+        let first = tokens.next_token().unwrap();
+        assert_eq!(first.kind, TokenType::M);
+        assert_eq!(tokens.state(), ParserState::new(1, 0));
     }
 }

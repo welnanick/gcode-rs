@@ -9,11 +9,11 @@ Program {
             line_number: None,
             comments: [
                 Comment {
-                    value: " A short gcode program with RepRap style checksums\r",
+                    value: " A short gcode program with RepRap style gcode\r",
                     kind: Semicolon,
                     span: Span {
                         start: 0,
-                        length: 52,
+                        length: 48,
                         line: 0,
                     },
                 },
@@ -23,7 +23,7 @@ Program {
             checksum: None,
             span: Span {
                 start: 0,
-                length: 53,
+                length: 49,
                 line: 0,
             },
         },
@@ -37,7 +37,7 @@ Program {
                     MiscellaneousCode {
                         number: 110,
                         span: Span {
-                            start: 56,
+                            start: 52,
                             length: 7,
                             line: 1,
                         },
@@ -48,7 +48,7 @@ Program {
                                     0.0,
                                 ),
                                 span: Span {
-                                    start: 61,
+                                    start: 57,
                                     length: 2,
                                     line: 1,
                                 },
@@ -62,7 +62,7 @@ Program {
                 125,
             ),
             span: Span {
-                start: 53,
+                start: 49,
                 length: 16,
                 line: 1,
             },
@@ -77,7 +77,7 @@ Program {
                     MiscellaneousCode {
                         number: 115,
                         span: Span {
-                            start: 72,
+                            start: 68,
                             length: 4,
                             line: 2,
                         },
@@ -90,7 +90,7 @@ Program {
                 39,
             ),
             span: Span {
-                start: 69,
+                start: 65,
                 length: 12,
                 line: 2,
             },
@@ -105,7 +105,7 @@ Program {
                     MiscellaneousCode {
                         number: 21,
                         span: Span {
-                            start: 84,
+                            start: 80,
                             length: 3,
                             line: 3,
                         },
@@ -118,7 +118,7 @@ Program {
                 18,
             ),
             span: Span {
-                start: 81,
+                start: 77,
                 length: 11,
                 line: 3,
             },
@@ -133,7 +133,7 @@ Program {
                     MiscellaneousCode {
                         number: 105,
                         span: Span {
-                            start: 95,
+                            start: 91,
                             length: 4,
                             line: 4,
                         },
@@ -146,9 +146,43 @@ Program {
                 36,
             ),
             span: Span {
-                start: 92,
-                length: 8,
+                start: 88,
+                length: 12,
                 line: 4,
+            },
+        },
+        Block {
+            line_number: None,
+            comments: [],
+            codes: [
+                Miscellaneous(
+                    MiscellaneousCode {
+                        number: 20,
+                        span: Span {
+                            start: 100,
+                            length: 5,
+                            line: 5,
+                        },
+                        args: [
+                            Argument {
+                                letter: 'T',
+                                value: Empty,
+                                span: Span {
+                                    start: 104,
+                                    length: 1,
+                                    line: 5,
+                                },
+                            },
+                        ],
+                    },
+                ),
+            ],
+            word_addresses: [],
+            checksum: None,
+            span: Span {
+                start: 100,
+                length: 7,
+                line: 5,
             },
         },
     ],

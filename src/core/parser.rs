@@ -101,54 +101,57 @@ fn is_block_item_start(tokens: &mut Tokens<'_>) -> bool {
 /// True if the next token starts a command or line/program number (G/M/T by type, N/O by letter).
 fn at_command_letter(
     tokens: &mut Tokens<'_>,
-    #[cfg(feature = "rep-rap-gcode")] is_m110: &bool,
+    #[cfg(feature = "rep-rap-gcode")] is_m110: bool,
 ) -> bool {
-    match tokens.peek_token() {
-        Some(t) => {
+    let Some(&t) = tokens.peek_token() else {
+        return false;
+    };
+
+    match t.kind {
+        TokenType::G | TokenType::M => true,
+        #[cfg(not(feature = "rep-rap-gcode"))]
+        TokenType::T => true,
+        #[cfg(feature = "rep-rap-gcode")]
+        TokenType::T => has_number_ahead(tokens),
+        TokenType::Letter => match t.value {
+            "O" | "o" => true,
             #[cfg(not(feature = "rep-rap-gcode"))]
-            let is_line_or_program_number_char =
-                |c| matches!(c, 'N' | 'n' | 'O' | 'o');
+            "N" | "n" => true,
             #[cfg(feature = "rep-rap-gcode")]
-            let is_line_or_program_number_char = if *is_m110 {
-                // In RepRap GCode, M110 has N as a valid argument, so we should not match against
-                // it when determining when we are done parsing arguments.
-                |c| matches!(c, 'O' | 'o')
-            } else {
-                |c| matches!(c, 'N' | 'n' | 'O' | 'o')
-            };
-            matches!(t.kind, TokenType::G | TokenType::M | TokenType::T)
-                || (t.kind == TokenType::Letter
-                    && t.value.len() == 1
-                    && t.value
-                        .chars()
-                        .next()
-                        .is_some_and(is_line_or_program_number_char))
+            "N" | "n" => !is_m110,
+            _ => false,
         },
-        None => false,
+        _ => false,
     }
 }
 
 /// First set for an argument: Letter token that is not N or O (G/M/T are separate token types).
 fn is_argument_start(
     tokens: &mut Tokens<'_>,
-    #[cfg(feature = "rep-rap-gcode")] is_m110: &bool,
+    #[cfg(feature = "rep-rap-gcode")] is_m110: bool,
 ) -> Option<char> {
-    let t = tokens.peek_token()?;
-    if t.kind != TokenType::Letter || t.value.len() != 1 {
-        return None;
+    let &t = tokens.peek_token()?;
+
+    match t.kind {
+        #[cfg(feature = "rep-rap-gcode")]
+        TokenType::T if !has_number_ahead(tokens) => t.value.chars().next(),
+        TokenType::Letter if t.value.len() == 1 => match t.value {
+            "O" | "o" => None,
+            #[cfg(not(feature = "rep-rap-gcode"))]
+            "N" | "n" => None,
+            #[cfg(feature = "rep-rap-gcode")]
+            "N" | "n" if !is_m110 => None,
+            _ => t.value.chars().next(),
+        },
+        _ => None,
     }
-    let c = t.value.chars().next()?;
-    #[cfg(not(feature = "rep-rap-gcode"))]
-    if matches!(c, 'N' | 'n' | 'O' | 'o') {
-        return None;
-    }
-    #[cfg(feature = "rep-rap-gcode")]
-    if (*is_m110 && matches!(c, 'O' | 'o'))
-        || (!*is_m110 && matches!(c, 'N' | 'n' | 'O' | 'o'))
-    {
-        return None;
-    }
-    Some(c)
+}
+
+#[cfg(feature = "rep-rap-gcode")]
+fn has_number_ahead(tokens: &mut Tokens<'_>) -> bool {
+    tokens
+        .peek_second_token()
+        .is_some_and(|next| next.kind == TokenType::Number)
 }
 
 // ---------- Span helper ----------
@@ -183,7 +186,7 @@ fn parse_argument<C: CommandVisitor>(
     tokens: &mut Tokens<'_>,
     cmd: &mut C,
     _line_start: Span,
-    #[cfg(feature = "rep-rap-gcode")] is_m110: &bool,
+    #[cfg(feature = "rep-rap-gcode")] is_m110: bool,
 ) -> Option<Span> {
     let letter_c = is_argument_start(
         tokens,
@@ -192,6 +195,13 @@ fn parse_argument<C: CommandVisitor>(
     )?;
     let letter_tok = tokens.next_token()?;
     let letter_span = letter_tok.span;
+
+    #[cfg(feature = "rep-rap-gcode")]
+    // In Rep-Rap gcode, T with no number following it is valid as an argument.
+    if letter_tok.kind == TokenType::T {
+        cmd.argument(letter_c, Value::Empty, letter_span);
+        return Some(letter_span);
+    }
 
     let sign = match tokens.peek_token() {
         Some(t) if t.kind == TokenType::MinusSign => {
@@ -251,7 +261,7 @@ fn parse_command_arguments<C: CommandVisitor>(
     tokens: &mut Tokens<'_>,
     cmd: &mut C,
     command_start_span: Span,
-    #[cfg(feature = "rep-rap-gcode")] is_m110: &bool,
+    #[cfg(feature = "rep-rap-gcode")] is_m110: bool,
 ) -> Span {
     let mut last_span = command_start_span;
     while !at_block_follow(tokens) {
@@ -338,7 +348,7 @@ fn parse_command<B: BlockVisitor>(
                     &mut cmd,
                     cmd_span,
                     #[cfg(feature = "rep-rap-gcode")]
-                    &false,
+                    false,
                 );
                 cmd.end_command(end_span);
                 ControlFlow::Continue(())
@@ -347,12 +357,14 @@ fn parse_command<B: BlockVisitor>(
         'M' => match block.start_miscellaneous_code(number) {
             ControlFlow::Break(()) => ControlFlow::Break(()),
             ControlFlow::Continue(mut cmd) => {
+                #[cfg(feature = "rep-rap-gcode")]
+                let is_m110 = number.major() == 110;
                 let end_span = parse_command_arguments(
                     tokens,
                     &mut cmd,
                     cmd_span,
                     #[cfg(feature = "rep-rap-gcode")]
-                    &(number.major() == 110),
+                    is_m110,
                 );
                 cmd.end_command(end_span);
                 ControlFlow::Continue(())
@@ -366,7 +378,7 @@ fn parse_command<B: BlockVisitor>(
                     &mut cmd,
                     cmd_span,
                     #[cfg(feature = "rep-rap-gcode")]
-                    &false,
+                    false,
                 );
                 cmd.end_command(end_span);
                 ControlFlow::Continue(())
@@ -795,6 +807,8 @@ mod tests {
     enum EventValue {
         Literal(f32),
         Variable(String),
+        #[cfg(feature = "rep-rap-gcode")]
+        Empty,
     }
 
     impl From<Value<'_>> for EventValue {
@@ -802,6 +816,8 @@ mod tests {
             match value {
                 Value::Literal(n) => EventValue::Literal(n),
                 Value::Variable(v) => EventValue::Variable(v.into()),
+                #[cfg(feature = "rep-rap-gcode")]
+                Value::Empty => EventValue::Empty,
             }
         }
     }
@@ -1255,6 +1271,49 @@ mod tests {
                 Event::LineNumber(0, sp(0, 2, 0)),
                 Event::MiscCode(Number::new(110)),
                 Event::Argument('N', EventValue::Literal(0.0), sp(8, 2, 0)),
+            ]
+        );
+    }
+
+    #[cfg(feature = "rep-rap-gcode")]
+    #[test]
+    fn m20_t_without_num_allows_t_argument() {
+        let events = parse_and_record("M20 T");
+        assert_eq!(
+            events,
+            vec![
+                Event::LineStarted,
+                Event::MiscCode(Number::new(20)),
+                Event::Argument('T', EventValue::Empty, sp(4, 1, 0)),
+            ]
+        );
+    }
+
+    #[cfg(feature = "rep-rap-gcode")]
+    #[test]
+    fn m20_t_g0_allows_t_argument() {
+        let events = parse_and_record("M20 T G0");
+        assert_eq!(
+            events,
+            vec![
+                Event::LineStarted,
+                Event::MiscCode(Number::new(20)),
+                Event::Argument('T', EventValue::Empty, sp(4, 1, 0)),
+                Event::GeneralCode(Number::new(0)),
+            ]
+        );
+    }
+
+    #[cfg(feature = "rep-rap-gcode")]
+    #[test]
+    fn t_with_number_still_starts_tool_change_command() {
+        let events = parse_and_record("M20 T1");
+        assert_eq!(
+            events,
+            vec![
+                Event::LineStarted,
+                Event::MiscCode(Number::new(20)),
+                Event::ToolChangeCode(Number::new(1)),
             ]
         );
     }
